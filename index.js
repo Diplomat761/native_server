@@ -61,6 +61,18 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при удалении жанра из фильма');
             res.end();
         }
+    } else if (req.method === 'GET' && pathname === '/movie') {
+        try {
+            const movies = await pool.query('SELECT * FROM movies');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify(movies.rows));
+            res.end();
+        } catch (err) {
+            console.error(err);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.write('Ошибка при получении списка фильмов');
+            res.end();
+        }
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.write('Страница не найдена');
