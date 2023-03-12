@@ -1,18 +1,5 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import express from 'express';
+import http from 'http';
+import url from 'url'
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -24,51 +11,15 @@ const pool = new Pool({
     database: "test"
 })
 
-const app = express();
+const server = http.createServer(async (req, res) => {
+    const { pathname, query } = url.parse(req.url, true);
+    const movieId = pathname.split('/')[2];
+    const genreId = pathname.split('/')[4];
 
-app.use(express.json())
+    
+});
 
-app.post('/movies/:movieId/genres/:genreId', async (req, res) => {
-    const movieId = req.params.movieId;
-    const genreId = req.params.genreId;
-    try {
-      const result = await pool.query(
-        'INSERT INTO movie_genres (movie_id, genre_id) values ($1, $2)',
-        [movieId, genreId]);
-        res.send(`Жанр ${genreId} добавлен к фильму ${movieId}`);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка при добавлении жанра к фильму');
-    }
-})
-app.get('/movies/:movieId/genres', async (req, res) => {
-    const movieId = req.params.movieId;
-    try {
-        const result = await pool.query(
-        'SELECT genres.name FROM genres JOIN movie_genres ON genres.id = movie_genres.genre_id WHERE movie_genres.movie_id = $1',
-        [movieId]);
-        res.send(result.rows.map(row => row.name));
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка при получении жанров к фильму');
-    }
-})
-app.delete('/movies/:movieId/genres/:genreId', async (req, res) => {
-    const movieId = req.params.movieId;
-    const genreId = req.params.genreId;
-    try {
-      const result = await pool.query(
-        'DELETE FROM movie_genres WHERE movie_id = $1 AND genre_id = $2',
-        [movieId, genreId]
-      );
-      res.send(`Жанр ${genreId} удален из фильма ${movieId}`);
-    } catch (err) {
-      console.error(err);
-      res.status(500).send('Ошибка при удалении жанра из фильма');
-    }
-})
-
-app.listen(5555, (err) => {
+server.listen(5555, (err) => {
     if (err) {
         return console.log('ERRORRRRRRRR');
     }

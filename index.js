@@ -73,10 +73,66 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при получении списка фильмов');
             res.end();
         }
-    } else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.write('Страница не найдена');
+    } else if (req.method === 'GET' && pathname.startsWith('/movie/')) {
+        const id = pathname.split('/')[2];
+        try {
+          const movie = await pool.query('SELECT * FROM movies WHERE id = $1', [id]);
+          if (movie.rows.length === 1) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify(movie.rows[0]));
+          } else {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.write('Movie not found');
+          }
+        } catch (err) {
+          console.error(err);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.write('Error retrieving movie');
+        }
         res.end();
+    } else if (req.method === 'POST' && pathname === '/movie') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk;
+        });
+        req.on('end', async () => {
+            try {
+                const { id, title, release_year } = JSON.parse(body);
+                const newMovie = await pool.query('INSERT INTO movies (id, title, release_year) VALUES ($1, $2, $3) RETURNING *', [id, title, release_year]);
+                res.writeHead(201, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(newMovie.rows[0]));
+            } catch (error) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: error.message }));
+            }
+        });
+        
+    } else if (req.method === 'PUT' && pathname === '/movie') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk;
+        });
+        req.on('end', async () => {
+            try {
+                const { id, title, release_year } = JSON.parse(body);
+                const updatedMovie = await pool.query('UPDATE movies SET title = $1, release_year = $2 WHERE id = $3 RETURNING *', [title, release_year, id]);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(updatedMovie.rows[0]));
+            } catch (error) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: error.message }));
+            }
+        });
+    }  else if (req.method === 'DELETE' && pathname.startsWith('/movie/')) {
+        const id = pathname.split('/')[2];
+        const deletedMovie = await pool.query('DELETE FROM movies WHERE id = $1 RETURNING *', [id]);
+        if (deletedMovie.rows.length === 1) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(deletedMovie.rows[0]));
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Movie not found' }));
+        }
     }
 });
 
