@@ -106,8 +106,6 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
-        //123
-        
     } else if (req.method === 'PUT' && pathname === '/movie') {
         let body = '';
         req.on('data', (chunk) => {
@@ -124,16 +122,86 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
-    }  else if (req.method === 'DELETE' && pathname.startsWith('/movie/')) {
+    } else if (req.method === 'DELETE' && pathname.startsWith('/movie/')) {
         const id = pathname.split('/')[2];
         const deletedMovie = await pool.query('DELETE FROM movies WHERE id = $1 RETURNING *', [id]);
         if (deletedMovie.rows.length === 1) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(deletedMovie.rows[0]));
-        } else {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Movie not found' }));
+        } 
+
+    } else if (req.method === 'GET' && pathname === '/genre') {
+        try {
+            const genres = await pool.query('SELECT * FROM genres');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify(genres.rows));
+            res.end();
+        } catch (err) {
+            console.error(err);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.write('Ошибка при получении списка фильмов');
+            res.end();
         }
+    } else if (req.method === 'GET' && pathname.startsWith('/genre/')) {
+        const id = pathname.split('/')[2];
+        try {
+          const genre = await pool.query('SELECT * FROM genres WHERE id = $1', [id]);
+          if (genre.rows.length === 1) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify(genre.rows[0]));
+          } else {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.write('Movie not found');
+          }
+        } catch (err) {
+          console.error(err);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.write('Error retrieving movie');
+        }
+        res.end();
+    } else if (req.method === 'POST' && pathname === '/genre') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk;
+        });
+        req.on('end', async () => {
+            try {
+                const {id, name} = JSON.parse(body);
+                const newGenre = await pool.query('INSERT INTO genres (id, name) VALUES ($1, $2) RETURNING *', [id, name]);
+                res.writeHead(201, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(newGenre.rows[0]));
+            } catch (error) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: error.message }));
+            }
+        });
+    } else if (req.method === 'PUT' && pathname === '/genre') {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk;
+        });
+        req.on('end', async () => {
+            try {
+                const {id, name} = JSON.parse(body);
+                const updatedGenre = await pool.query('UPDATE genres SET name = $1 WHERE id = $2 RETURNING *', [name, id]);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(updatedGenre.rows[0]));
+            } catch (error) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: error.message }));
+            }
+        });
+    } else if (req.method === 'DELETE' && pathname.startsWith('/genre/')) {
+        const id = pathname.split('/')[2];
+        const deletedMovie = await pool.query('DELETE FROM genres WHERE id = $1 RETURNING *', [id]);
+        if (deletedMovie.rows.length === 1) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(deletedMovie.rows[0]));
+        } 
+
+    } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Not found' }));
     }
 });
 
