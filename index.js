@@ -3,6 +3,7 @@ import url from 'url'
 import pkg from 'pg';
 const { Pool } = pkg;
 
+// Подключаемся к базе
 const pool = new Pool({
     user: "postgres",
     password: 'rootroot',
@@ -11,11 +12,13 @@ const pool = new Pool({
     database: "test"
 })
 
+// Создаем сервер
 const server = http.createServer(async (req, res) => {
     const { pathname, query } = url.parse(req.url, true);
     const movieId = pathname.split('/')[2];
     const genreId = pathname.split('/')[4];
 
+    // Запрос на добавление жанра к фильму
     if (req.method === 'POST' && pathname.match(/^\/movies\/\d+\/genres\/\d+$/)) {
         try {
             const result = await pool.query(
@@ -31,6 +34,8 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при добавлении жанра к фильму');
             res.end();
         }
+
+    // Запрос на получение жанров к фильму
     } else if (req.method === 'GET' && pathname.match(/^\/movies\/\d+\/genres$/)) {
         try {
             const result = await pool.query(
@@ -46,6 +51,8 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при получении жанров к фильму');
             res.end();
         }
+
+    // Запрос на удаление жанра у фильма
     } else if (req.method === 'DELETE' && pathname.match(/^\/movies\/\d+\/genres\/\d+$/)) {
         try {
             const result = await pool.query(
@@ -61,6 +68,8 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при удалении жанра из фильма');
             res.end();
         }
+
+    // Запрос на получение всех фильмов
     } else if (req.method === 'GET' && pathname === '/movie') {
         try {
             const movies = await pool.query('SELECT * FROM movies');
@@ -73,6 +82,8 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при получении списка фильмов');
             res.end();
         }
+
+    // Запрос на получение одного фильма
     } else if (req.method === 'GET' && pathname.startsWith('/movie/')) {
         const id = pathname.split('/')[2];
         try {
@@ -90,6 +101,8 @@ const server = http.createServer(async (req, res) => {
           res.write('Error retrieving movie');
         }
         res.end();
+
+    // Запрос на добавление нового фильма
     } else if (req.method === 'POST' && pathname === '/movie') {
         let body = '';
         req.on('data', (chunk) => {
@@ -106,6 +119,8 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
+
+    // Запрос на редактирование фильма
     } else if (req.method === 'PUT' && pathname === '/movie') {
         let body = '';
         req.on('data', (chunk) => {
@@ -122,6 +137,8 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
+
+    // Запрос на удаление фильма
     } else if (req.method === 'DELETE' && pathname.startsWith('/movie/')) {
         const id = pathname.split('/')[2];
         const deletedMovie = await pool.query('DELETE FROM movies WHERE id = $1 RETURNING *', [id]);
@@ -130,6 +147,7 @@ const server = http.createServer(async (req, res) => {
             res.end(JSON.stringify(deletedMovie.rows[0]));
         } 
 
+    // Запрос на получение всех жанров
     } else if (req.method === 'GET' && pathname === '/genre') {
         try {
             const genres = await pool.query('SELECT * FROM genres');
@@ -142,6 +160,8 @@ const server = http.createServer(async (req, res) => {
             res.write('Ошибка при получении списка фильмов');
             res.end();
         }
+
+    //Запрос на получение одного жанра
     } else if (req.method === 'GET' && pathname.startsWith('/genre/')) {
         const id = pathname.split('/')[2];
         try {
@@ -159,6 +179,8 @@ const server = http.createServer(async (req, res) => {
           res.write('Error retrieving movie');
         }
         res.end();
+
+    // Запрос на добавление жанра
     } else if (req.method === 'POST' && pathname === '/genre') {
         let body = '';
         req.on('data', (chunk) => {
@@ -175,6 +197,8 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
+
+    // Запрос на редактирование жанра
     } else if (req.method === 'PUT' && pathname === '/genre') {
         let body = '';
         req.on('data', (chunk) => {
@@ -191,6 +215,8 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ message: error.message }));
             }
         });
+
+    // Запрос на удаление жанра
     } else if (req.method === 'DELETE' && pathname.startsWith('/genre/')) {
         const id = pathname.split('/')[2];
         const deletedMovie = await pool.query('DELETE FROM genres WHERE id = $1 RETURNING *', [id]);
@@ -198,13 +224,13 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(deletedMovie.rows[0]));
         } 
-
     } else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Not found' }));
     }
 });
 
+// Пдключаемся к порту 5555 и отображаем статус 
 server.listen(5555, (err) => {
     if (err) {
         return console.log('ERRORRRRRRRR');
